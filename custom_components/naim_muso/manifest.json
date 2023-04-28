@@ -1,0 +1,15 @@
+{
+  "domain": "naim_muso",
+  "name": "naim Mu-so controller",
+  "codeowners": ["@blitzkopf"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/blitzkopf/naim_muso",
+  "homekit": {},
+  "issue_tracker": "https://github.com/blitzkopf/naim_muso/issues",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.0.1",
+  "ssdp": [],
+  "zeroconf": []
+}
