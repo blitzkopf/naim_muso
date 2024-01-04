@@ -8,7 +8,7 @@
   "homekit": {},
   "issue_tracker": "https://github.com/blitzkopf/naim_muso/issues",
   "iot_class": "local_polling",
-  "requirements": [],
+  "requirements": ["git+https://github.com/blitzkopf/NaimCo.git#naimco==0.0.1"],
   "version": "0.0.1",
   "ssdp": [],
   "zeroconf": []

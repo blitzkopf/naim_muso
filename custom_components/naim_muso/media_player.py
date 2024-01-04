@@ -1,5 +1,6 @@
 """Naim Mu-so Media Player."""
 import asyncio
+from typing import Any
 
 from naimco import NaimCo
 
@@ -8,9 +9,14 @@ from homeassistant.components.media_player import (
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
+    BrowseMedia,
+    MediaClass,
+    MediaType,
+    MediaPlayerEnqueue
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from collections.abc import Sequence
 
 from .const import LOGGER as _LOGGER
 
@@ -24,10 +30,10 @@ async def async_setup_entry(
     # _LOGGER.debug("media_player.async_setup_entry %s (%s)", entry.entry_id, entry.title)
 
     # Create our own device-wrapping entity
+    print(f"entry {entry}")
     device = NaimCo(entry.data["host"])
     await device.startup()
     _ = asyncio.create_task(device.run_connection(10))
-    await device.initialize(10)
     await device.controller.send_command("GetViewState")
     await device.controller.nvm.send_command("GETVIEWSTATE")
     await device.controller.nvm.send_command("GETPREAMP")
@@ -69,6 +75,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
             | MediaPlayerEntityFeature.VOLUME_STEP
             | MediaPlayerEntityFeature.SELECT_SOURCE
             | MediaPlayerEntityFeature.BROWSE_MEDIA
+            | MediaPlayerEntityFeature.PLAY_MEDIA
         )
         return supported_features
 
@@ -84,6 +91,8 @@ class NaimMediaPlayer(MediaPlayerEntity):
         await self._device.controller.nvm.send_command("PRODUCT")
         await self._device.controller.nvm.send_command("GETROOMNAME")
         await self._device.controller.nvm.send_command("GETSERIALNUM")
+        await self._device.controller.nvm.send_command('GETTOTALPRESETS')
+
         await self._device.controller.send_command("GetNowPlaying")
 
     async def async_turn_on(self) -> None:
@@ -110,7 +119,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        await self.hass.async_add_executor_job(self.set_volume_level, int(100 * volume))
+        await self._device.set_volume(int(100 * volume))
 
     @property
     def volume_level(self) -> float | None:
@@ -159,6 +168,31 @@ class NaimMediaPlayer(MediaPlayerEntity):
         for index, name in inputs.items():
             if name == source:
                 await self._device.select_input(index)
+
+    async def async_browse_media(
+        self, media_content_type: str | None = None, media_content_id: str | None = None
+    ) -> BrowseMedia:
+        """ Browse available media, only radio presets for the moment"""
+        seq = []
+        for key,value in self._device.presets.items():
+            seq.append(BrowseMedia(media_class=MediaClass.CHANNEL,media_content_id=f"radio/{key}",
+                           media_content_type=MediaType.CHANNEL,title=value,
+                           can_play=True,can_expand=False))
+        return BrowseMedia(media_class=MediaClass.CHANNEL,media_content_id="presets",
+                           media_content_type=MediaType.CHANNEL,title="Presets",
+                           can_play=False,can_expand=True,
+                           children=seq,children_media_class=MediaClass.CHANNEL)
+    async def async_play_media(
+        self,
+        media_type: str,
+        media_id: str,
+        enqueue: MediaPlayerEnqueue | None = None,
+        announce: bool | None = None, **kwargs: Any
+    ) -> None:
+        """Play a piece of media. Only working with iRadio presets for now"""
+        (_dummy,station)=media_id.split("/")
+        await self._device.select_preset(station)
+
 
     @property
     def media_image_url(self) -> str | None:

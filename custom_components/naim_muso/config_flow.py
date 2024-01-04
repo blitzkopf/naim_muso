@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 # TOD O adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required("host"): str,
+        vol.Required("host",msg="Muso",description="Mu-so device"): str,
     }
 )
 
@@ -53,18 +53,20 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     #     your_validate_func, data["username"], data["password"]
     # )
 
-    hub = NaimConfigHub(data["host"])
+    device = NaimCo(data["host"])
 
-    if not await hub.connect():
-        raise CannotConnect
+    await device.startup()
 
     # If you cannot connect:
     # throw CannotConnect
     # If the authentication is wrong:
     # InvalidAuth
 
+    # We need to close the connection before returning,
+    await device.controller.connection.close()
+
     # Return info that you want to store in the config entry.
-    return {"title": "Mu-so"}
+    return {"title": "Mu-so ip address"}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
