@@ -10,6 +10,19 @@
   "iot_class": "local_polling",
   "requirements": ["git+https://github.com/blitzkopf/NaimCo.git#naimco==0.0.1"],
   "version": "0.0.1",
-  "ssdp": [],
-  "zeroconf": []
+  "loggers": ["naimco.controllers", "naimco.core"],
+  "ssdp": [
+    {
+      "manufacturer": "Naim Audio Ltd."
+    }
+  ],
+  "zeroconf": [
+    {
+      "type":"_airplay._tcp.local.",
+      "properties": {
+        "manufacturer": "Naim Audio Ltd."
+      }
+    }
+  ]
+
 }
