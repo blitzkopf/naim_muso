@@ -3,12 +3,17 @@
   "name": "naim Mu-so controller",
   "codeowners": ["@blitzkopf"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["ssdp"],
+  "after_dependencies": ["spotify", "zeroconf", "media_source"],
   "documentation": "https://github.com/blitzkopf/naim_muso",
+  "integration_type": "hub",
   "homekit": {},
   "issue_tracker": "https://github.com/blitzkopf/naim_muso/issues",
   "iot_class": "local_polling",
-  "requirements": ["git+https://github.com/blitzkopf/NaimCo.git#naimco==0.0.1"],
+  "requirements": [
+      "naimco",
+      "async-upnp-client", "getmac==0.9.4"
+  ],
   "version": "0.0.1",
   "loggers": ["naimco.controllers", "naimco.core"],
   "ssdp": [

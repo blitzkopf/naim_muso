@@ -15,7 +15,6 @@ PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up naim Mu-so controller from a config entry."""
 
-    hass.data.setdefault(DOMAIN, {})
     # TOD O 1. Create API instance
     # TOD O 2. Validate the API connection (and authentication)
     # TOD O 3. Store an API object for your platforms to access
