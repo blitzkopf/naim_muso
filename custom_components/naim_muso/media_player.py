@@ -29,14 +29,11 @@ from homeassistant.const import CONF_DEVICE_ID, CONF_MAC, CONF_TYPE, CONF_URL
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.device_registry import DeviceInfo
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from collections.abc import Sequence
 
 from .const import (
     LOGGER as _LOGGER,
-    DOMAIN,
     CONF_POLL_AVAILABILITY,
     CONF_BROWSE_UNFILTERED,
     CONF_LISTEN_PORT,
@@ -138,7 +135,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
 
     async def async_added_to_hass(self) -> None:
         """Handle addition."""
-        print(f"async_added_to_hass ")
+        print("async_added_to_hass ")
         # Update this entity when the associated config entry is modified
         if self.registry_entry and self.registry_entry.config_entry_id:
             config_entry = self.hass.config_entries.async_get_entry(
@@ -319,8 +316,8 @@ class NaimMediaPlayer(MediaPlayerEntity):
             print(f"location {location} ip_address {ip_address}")
             self._device = NaimCo(hostname)
             self.location = location
-            await self._device.startup()
-            _ = asyncio.create_task(self._device.run_connection(10))
+            await self._device.startup(10)
+            #_ = asyncio.create_task(self._device.run_connection(10))
             await self._device.controller.send_command("GetViewState")
             await self._device.controller.nvm.send_command("GETVIEWSTATE")
             await self._device.controller.nvm.send_command("GETPREAMP")
@@ -401,6 +398,25 @@ class NaimMediaPlayer(MediaPlayerEntity):
             self.unique_id,
             device_id=device_entry.id,
         )
+    async def _device_disconnect(self) -> None:
+        """Destroy connections to the device now that it's not available.
+
+        Also call when removing this entity from hass to clean up connections.
+        """
+        async with self._device_lock:
+            if not self._device:
+                _LOGGER.debug("Disconnecting from device that's not connected")
+                return
+
+            _LOGGER.debug("Disconnecting from %s", self._device.name)
+            #self._device.on_event = None
+            old_device = self._device
+            self._device = None
+            #await old_device.async_unsubscribe_services()
+            await old_device.shutdown()
+
+        domain_data = get_domain_data(self.hass)
+        await domain_data.async_release_event_notifier(self._event_addr)
 
     @property
     def unique_id(self) -> str:
