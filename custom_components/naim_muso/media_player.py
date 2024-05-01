@@ -319,8 +319,8 @@ class NaimMediaPlayer(MediaPlayerEntity):
             print(f"location {location} ip_address {ip_address}")
             self._device = NaimCo(hostname)
             self.location = location
-            await self._device.startup()
-            _ = asyncio.create_task(self._device.run_connection(10))
+            await self._device.startup(10)
+            #_ = asyncio.create_task(self._device.run_connection(10))
             await self._device.controller.send_command("GetViewState")
             await self._device.controller.nvm.send_command("GETVIEWSTATE")
             await self._device.controller.nvm.send_command("GETPREAMP")
@@ -401,6 +401,25 @@ class NaimMediaPlayer(MediaPlayerEntity):
             self.unique_id,
             device_id=device_entry.id,
         )
+    async def _device_disconnect(self) -> None:
+        """Destroy connections to the device now that it's not available.
+
+        Also call when removing this entity from hass to clean up connections.
+        """
+        async with self._device_lock:
+            if not self._device:
+                _LOGGER.debug("Disconnecting from device that's not connected")
+                return
+
+            _LOGGER.debug("Disconnecting from %s", self._device.name)
+            #self._device.on_event = None
+            old_device = self._device
+            self._device = None
+            #await old_device.async_unsubscribe_services()
+            await old_device.shutdown()
+
+        domain_data = get_domain_data(self.hass)
+        await domain_data.async_release_event_notifier(self._event_addr)
 
     @property
     def unique_id(self) -> str:

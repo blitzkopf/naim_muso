@@ -19,7 +19,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # TOD O 2. Validate the API connection (and authentication)
     # TOD O 3. Store an API object for your platforms to access
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True

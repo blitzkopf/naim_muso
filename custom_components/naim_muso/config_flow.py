@@ -77,7 +77,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     # InvalidAuth
 
     # We need to close the connection before returning,
-    await device.controller.connection.close()
+    await device.controller.shutdown()
 
     # Return info that you want to store in the config entry.
     return {"title": "Mu-so ip address"}
