@@ -1,6 +1,11 @@
 {
   "domain": "naim_muso",
   "name": "naim Mu-so controller",
+  "after_dependencies": [
+    "spotify",
+    "zeroconf",
+    "media_source"
+  ],
   "codeowners": [
     "@blitzkopf"
   ],
@@ -8,31 +13,26 @@
   "dependencies": [
     "ssdp"
   ],
-  "after_dependencies": [
-    "spotify",
-    "zeroconf",
-    "media_source"
-  ],
   "documentation": "https://github.com/blitzkopf/naim_muso",
-  "integration_type": "hub",
   "homekit": {},
-  "issue_tracker": "https://github.com/blitzkopf/naim_muso/issues",
+  "integration_type": "hub",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/blitzkopf/naim_muso/issues",
+  "loggers": [
+    "naimco.controllers",
+    "naimco.core"
+  ],
   "requirements": [
     "naimco",
     "async-upnp-client",
     "getmac==0.9.4"
-  ],
-  "version": "0.0.1",
-  "loggers": [
-    "naimco.controllers",
-    "naimco.core"
   ],
   "ssdp": [
     {
       "manufacturer": "Naim Audio Ltd."
     }
   ],
+  "version": "0.0.1",
   "zeroconf": [
     {
       "type": "_airplay._tcp.local.",
