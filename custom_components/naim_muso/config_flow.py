@@ -5,7 +5,7 @@ import logging
 from pprint import pformat
 
 from typing import Any,cast
-from collections.abc import Callable, Mapping
+from collections.abc import  Mapping
 from functools import partial
 from ipaddress import IPv6Address, ip_address
 
@@ -25,10 +25,10 @@ from homeassistant import config_entries
 from homeassistant.components import ssdp
 from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, CONF_MAC, CONF_TYPE, CONF_URL
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import IntegrationError
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import  device_registry as dr
 
 
 from .const import (

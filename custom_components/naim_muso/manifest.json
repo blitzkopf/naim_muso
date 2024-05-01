@@ -37,7 +37,8 @@
     {
       "type": "_airplay._tcp.local.",
       "properties": {
-        "manufacturer": "Naim Audio Ltd."
+        "manufacturer": "naim audio ltd.",
+        "model": "mu-so"
       }
     }
   ]

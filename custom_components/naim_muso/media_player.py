@@ -29,14 +29,11 @@ from homeassistant.const import CONF_DEVICE_ID, CONF_MAC, CONF_TYPE, CONF_URL
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.device_registry import DeviceInfo
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from collections.abc import Sequence
 
 from .const import (
     LOGGER as _LOGGER,
-    DOMAIN,
     CONF_POLL_AVAILABILITY,
     CONF_BROWSE_UNFILTERED,
     CONF_LISTEN_PORT,
@@ -138,7 +135,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
 
     async def async_added_to_hass(self) -> None:
         """Handle addition."""
-        print(f"async_added_to_hass ")
+        print("async_added_to_hass ")
         # Update this entity when the associated config entry is modified
         if self.registry_entry and self.registry_entry.config_entry_id:
             config_entry = self.hass.config_entries.async_get_entry(
