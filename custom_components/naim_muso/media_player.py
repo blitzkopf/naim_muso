@@ -415,8 +415,8 @@ class NaimMediaPlayer(MediaPlayerEntity):
             #await old_device.async_unsubscribe_services()
             await old_device.shutdown()
 
-        domain_data = get_domain_data(self.hass)
-        await domain_data.async_release_event_notifier(self._event_addr)
+        #domain_data = get_domain_data(self.hass)
+        #await domain_data.async_release_event_notifier(self._event_addr)
 
     @property
     def unique_id(self) -> str:
