@@ -1,6 +1,6 @@
 {
     "name": "Naim Mu-so",
     "hide_default_branch": true,
-    "homeassistant": "2023.8.0",
+    "homeassistant": "2024.3.2",
     "render_readme": true
 }
