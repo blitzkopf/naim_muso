@@ -11,8 +11,15 @@
 
 _Home Assistant Integration to integrate with [naim muso][naim] media player._
 
+## Installation via HACS
+The preferred type of installation is via [HACS](https://hacs.xyz). This way, you'll get updates when there are new versions.
+
+1. Add [https://github.com/blitzkopf/naim_muso][naim_muso] to HACS under: HACS → Integrations → 3 dots(top right) → Custom repositories.
+1. Select Naim Mu-so under HACS → Integrations, or search for it if it not on the front page.
+
 
 ## Installation
+This is the hard way, HACS above is easier, at least after you have HACS set up.
 
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 1. If you do not have a `custom_components` directory (folder) there, you need to create it.
