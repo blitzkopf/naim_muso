@@ -540,7 +540,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
     @property
     def source_list(self) -> list[str] | None:
         """Get a list of inputs available."""
-        if not self._device or not self.available:
+        if not self._device:
             return None
         inputs = self._device.inputs
         _LOGGER.debug("Source_list inputs: %s", inputs)
