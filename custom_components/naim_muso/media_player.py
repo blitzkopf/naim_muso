@@ -317,6 +317,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
             self._device = NaimCo(hostname)
             self.location = location
             await self._device.startup(10)
+            # hass.async_create_task(async_say_hello(hass, target))
             #_ = asyncio.create_task(self._device.run_connection(10))
             await self._device.controller.send_command("GetViewState")
             await self._device.controller.nvm.send_command("GETVIEWSTATE")
