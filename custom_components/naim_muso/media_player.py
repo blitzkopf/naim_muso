@@ -11,8 +11,6 @@ from async_upnp_client.utils import async_get_local_ip
 from custom_components.naim_muso.data import get_domain_data
 from urllib.parse import urlparse
 
-
-
 from homeassistant import config_entries
 from homeassistant.components import ssdp
 
@@ -28,6 +26,8 @@ from homeassistant.components.media_player import (
 from homeassistant.const import CONF_DEVICE_ID, CONF_MAC, CONF_TYPE, CONF_URL
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -41,6 +41,31 @@ from .const import (
 
 )
 
+def catch_comm_error(func):
+    async def wrapper(*args, **kwargs):
+        self=args[0]
+        if not isinstance(self,NaimMediaPlayer):
+            raise HomeAssistantError("Illegal use of decorator, 'self' is not instance of NaimMediaPlayer")
+        if self._runner_task and self._runner_task.done():
+            #await self._device_disconnect()
+
+            ex = self._runner_task.exception()
+            self._runner_task=None
+            if ex :
+                raise HomeAssistantError(ex)
+            raise HomeAssistantError("Runner task finished, disconnecting")
+        if not self._device:
+            _LOGGER.info("trying to reconnect!")
+            try:
+                await self._device_connect(self.location)
+            except UpnpError as err:
+                _LOGGER.debug("Couldn't connect immediately: %r", err)
+        try:
+            return await func(*args, **kwargs)
+        except Exception  :
+            _LOGGER.warn(f"{func.__name__} failed to communuicate with Mu-so\n")
+            raise
+    return wrapper
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -91,7 +116,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
     browse_unfiltered: bool
 
     _device_lock: asyncio.Lock  # Held when connecting or disconnecting the device
-    check_available: bool = False
+    # check_available: bool = False
     _ssdp_connect_failed: bool = False
 
     # Track BOOTID in SSDP advertisements for device changes
@@ -105,7 +130,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
     #_attr_sound_mode = None
 
     _device: NaimCo | None = None
-
+    _runner_task: asyncio.Task
     # def __init__(self, device: NaimCo) -> None:
     #     """Store the naimco device used to control naim device."""
     #     self._device = device
@@ -315,34 +340,38 @@ class NaimMediaPlayer(MediaPlayerEntity):
             _,ip_address = await async_get_local_ip(location, self.hass.loop)
             print(f"location {location} ip_address {ip_address}")
             self._device = NaimCo(hostname)
-            self.location = location
-            await self._device.startup(10)
-            # hass.async_create_task(async_say_hello(hass, target))
-            #_ = asyncio.create_task(self._device.run_connection(10))
-            await self._device.controller.send_command("GetViewState")
-            await self._device.controller.nvm.send_command("GETVIEWSTATE")
-            await self._device.controller.nvm.send_command("GETPREAMP")
-            await self._device.controller.nvm.send_command("GETSTANDBYSTATUS")
-            await self._device.controller.nvm.send_command("GETINPUTBLK")
-            await self._device.controller.nvm.send_command("PRODUCT")
-            await self._device.controller.nvm.send_command("GETROOMNAME")
-            await self._device.controller.nvm.send_command("GETSERIALNUM")
 
-            # Subscribe to event notifications
-            # try:
-            #     self._device.on_event = self._on_event
-            #     await self._device.async_subscribe_services(auto_resubscribe=True)
-            # except UpnpResponseError as err:
-            #     # Device rejected subscription request. This is OK, variables
-            #     # will be polled instead.
-            #     _LOGGER.debug("Device rejected subscription: %r", err)
-            # except UpnpError as err:
-            #     # Don't leave the device half-constructed
-            #     self._device.on_event = None
-            #     self._device = None
-            #     await domain_data.async_release_event_notifier(self._event_addr)
-            #     _LOGGER.debug("Error while subscribing during device connect: %r", err)
-            #     raise
+        self.location = location
+        await self._device.startup()
+        # Using the hass async_create_task will hang,
+        # self.hass.async_create_task(self._device.runner_task())
+        self._runner_task = asyncio.create_task(self.runner_task())
+        await self._device.initialize(timeout=35)
+
+        await self._device.controller.send_command("GetViewState")
+        await self._device.controller.nvm.send_command("GETVIEWSTATE")
+        await self._device.controller.nvm.send_command("GETPREAMP")
+        await self._device.controller.nvm.send_command("GETSTANDBYSTATUS")
+        await self._device.controller.nvm.send_command("GETINPUTBLK")
+        await self._device.controller.nvm.send_command("PRODUCT")
+        await self._device.controller.nvm.send_command("GETROOMNAME")
+        await self._device.controller.nvm.send_command("GETSERIALNUM")
+
+        # Subscribe to event notifications
+        # try:
+        #     self._device.on_event = self._on_event
+        #     await self._device.async_subscribe_services(auto_resubscribe=True)
+        # except UpnpResponseError as err:
+        #     # Device rejected subscription request. This is OK, variables
+        #     # will be polled instead.
+        #     _LOGGER.debug("Device rejected subscription: %r", err)
+        # except UpnpError as err:
+        #     # Don't leave the device half-constructed
+        #     self._device.on_event = None
+        #     self._device = None
+        #     await domain_data.async_release_event_notifier(self._event_addr)
+        #     _LOGGER.debug("Error while subscribing during device connect: %r", err)
+        #     raise
 
         self._update_device_registry()
 
@@ -413,11 +442,54 @@ class NaimMediaPlayer(MediaPlayerEntity):
             #self._device.on_event = None
             old_device = self._device
             self._device = None
-            #await old_device.async_unsubscribe_services()
             await old_device.shutdown()
+            #await old_device.async_unsubscribe_services()
 
         #domain_data = get_domain_data(self.hass)
         #await domain_data.async_release_event_notifier(self._event_addr)
+
+    @catch_comm_error
+    async def async_update(self) -> None:
+        """Retrieve the latest data."""
+        # if self._runner_task.done():
+        #     await self._device_disconnect()
+
+        #     ex = self._runner_task.exception()
+        #     self._runner_task=None
+        #     if ex :
+        #         raise HomeAssistantError(ex)
+        #     raise HomeAssistantError("Runner task finished, disconnecting")
+
+        # TOD O: these should be moved into the naimco package.
+        # Leave them here until the thing stabilize.
+        await self._device.controller.send_command("GetViewState")
+        await self._device.controller.nvm.send_command("GETVIEWSTATE")
+        await self._device.controller.nvm.send_command("GETPREAMP")
+        await self._device.controller.nvm.send_command("GETSTANDBYSTATUS")
+        await self._device.controller.nvm.send_command("GETINPUTBLK")
+        await self._device.controller.nvm.send_command("PRODUCT")
+        await self._device.controller.nvm.send_command("GETROOMNAME")
+        await self._device.controller.nvm.send_command("GETSERIALNUM")
+        await self._device.controller.nvm.send_command('GETTOTALPRESETS')
+
+        await self._device.controller.send_command("GetNowPlaying")
+
+    async def runner_task(self):
+        try:
+            await self._device.runner_task()
+            # ConnectionResetError
+        except Exception as  e :
+            _LOGGER.info(f"Runner task failed! {e}")
+            await self._device_disconnect()
+            raise
+
+    @property
+    def available(self) -> bool:
+        """Device available if we have a connection to it"""
+        if self._device :
+            return True
+        else:
+            return False
 
     @property
     def unique_id(self) -> str:
@@ -464,30 +536,17 @@ class NaimMediaPlayer(MediaPlayerEntity):
         )
         return supported_features
 
-    async def async_update(self) -> None:
-        """Retrieve the latest data."""
-        # TOD O: these should be moved into the naimco package.
-        # Leave them here until the thing stabilize.
-        await self._device.controller.send_command("GetViewState")
-        await self._device.controller.nvm.send_command("GETVIEWSTATE")
-        await self._device.controller.nvm.send_command("GETPREAMP")
-        await self._device.controller.nvm.send_command("GETSTANDBYSTATUS")
-        await self._device.controller.nvm.send_command("GETINPUTBLK")
-        await self._device.controller.nvm.send_command("PRODUCT")
-        await self._device.controller.nvm.send_command("GETROOMNAME")
-        await self._device.controller.nvm.send_command("GETSERIALNUM")
-        await self._device.controller.nvm.send_command('GETTOTALPRESETS')
-
-        await self._device.controller.send_command("GetNowPlaying")
-
+    @catch_comm_error
     async def async_turn_on(self) -> None:
         """Turn the media player off."""
         await self._device.on()
 
+    @catch_comm_error
     async def async_turn_off(self) -> None:
         """Turn the media player off."""
         await self._device.off()
 
+    @catch_comm_error
     async def async_volume_up(self) -> None:
         """Turn volume up for media player.
 
@@ -495,6 +554,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
         """
         await self._device.volume_up()
 
+    @catch_comm_error
     async def async_volume_down(self) -> None:
         """Turn volume down for media player.
 
@@ -502,6 +562,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
         """
         await self._device.volume_down()
 
+    @catch_comm_error
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         await self._device.set_volume(int(100 * volume))
@@ -547,6 +608,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
         _LOGGER.debug("Source_list inputs: %s", inputs)
         return list(inputs.values())
 
+    @catch_comm_error
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
         inputs = self._device.inputs
@@ -567,6 +629,8 @@ class NaimMediaPlayer(MediaPlayerEntity):
                            media_content_type=MediaType.CHANNEL,title="Presets",
                            can_play=False,can_expand=True,
                            children=seq,children_media_class=MediaClass.CHANNEL)
+
+    @catch_comm_error
     async def async_play_media(
         self,
         media_type: str,
