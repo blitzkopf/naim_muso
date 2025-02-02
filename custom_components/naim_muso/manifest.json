@@ -23,7 +23,7 @@
     "naimco.core"
   ],
   "requirements": [
-    "naimco",
+    "naimco==0.2.0",
     "async-upnp-client",
     "getmac==0.9.4"
   ],
