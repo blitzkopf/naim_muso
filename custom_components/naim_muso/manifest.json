@@ -32,7 +32,7 @@
       "manufacturer": "Naim Audio Ltd."
     }
   ],
-  "version": "0.0.1",
+  "version": "0.1.0",
   "zeroconf": [
     {
       "type": "_airplay._tcp.local.",
