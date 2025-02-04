@@ -130,7 +130,7 @@ class NaimMediaPlayer(MediaPlayerEntity):
     #_attr_sound_mode = None
 
     _device: NaimCo | None = None
-    _runner_task: asyncio.Task
+    _runner_task: asyncio.Task = None
     # def __init__(self, device: NaimCo) -> None:
     #     """Store the naimco device used to control naim device."""
     #     self._device = device
