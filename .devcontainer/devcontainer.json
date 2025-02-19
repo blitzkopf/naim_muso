@@ -1,6 +1,6 @@
 {
     "name": "HA Naim Dev Container",
-    "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.13",
     "postCreateCommand": "scripts/setup",
     "runArgs": [
         "--net=host",
@@ -23,6 +23,11 @@
     "customizations": {
         "vscode": {
             "extensions": [
+                "charliermarsh.ruff",
+                "visualstudioexptteam.vscodeintellicode",
+                "redhat.vscode-yaml",
+                "esbenp.prettier-vscode",
+                "GitHub.copilot",
                 "ms-python.python",
                 "github.vscode-pull-request-github",
                 "ryanluker.vscode-coverage-gutters",

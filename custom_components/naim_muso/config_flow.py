@@ -4,8 +4,8 @@ from __future__ import annotations
 import logging
 from pprint import pformat
 
-from typing import Any,cast
-from collections.abc import  Mapping
+from typing import Any, cast
+from collections.abc import Mapping
 from functools import partial
 from ipaddress import IPv6Address, ip_address
 
@@ -23,12 +23,12 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.components import ssdp
-from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, CONF_MAC, CONF_TYPE, CONF_URL
+from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, CONF_MAC, CONF_TYPE, CONF_URL, CONF_IP_ADDRESS
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import IntegrationError
-from homeassistant.helpers import  device_registry as dr
+from homeassistant.exceptions import IntegrationError, HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 
 
 from .const import (
@@ -46,9 +46,10 @@ FlowInput = Mapping[str, Any] | None
 # TOD O adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required("host",msg="Muso",description="Mu-so device"): str,
+        vol.Required("host", msg="Muso", description="Mu-so device"): str,
     }
 )
+
 
 class ConnectError(IntegrationError):
     """Error occurred when trying to connect to a device."""
@@ -69,7 +70,10 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     device = NaimCo(data["host"])
 
-    await device.startup()
+    try:
+        await device.startup()
+    except Exception as e:
+        raise ConnectError from e
 
     # If you cannot connect:
     # throw CannotConnect
@@ -107,7 +111,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     #     return DlnaDmrOptionsFlowHandler(config_entry)
 
     async def async_step_user(
-        self, user_input: FlowInput = None) -> FlowResult:
+            self, user_input: FlowInput = None) -> FlowResult:
         """Handle a flow initialized by the user.
 
         Let user choose from a list of found and unconfigured devices or to
@@ -148,7 +152,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         errors = {}
         if user_input is not None:
-            self._location = user_input[CONF_URL]
+            self._location = f"http://{user_input[CONF_IP_ADDRESS]}:8080/description.xml"
             try:
                 await self._async_connect()
             except ConnectError as err:
@@ -156,7 +160,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 return self._create_entry()
 
-        data_schema = vol.Schema({CONF_URL: str})
+        data_schema = vol.Schema({CONF_IP_ADDRESS: str})
         return self.async_show_form(
             step_id="manual", data_schema=data_schema, errors=errors
         )
@@ -164,16 +168,17 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_ssdp(self, discovery_info: ssdp.SsdpServiceInfo) -> FlowResult:
         """Handle a flow initialized by SSDP discovery."""
         if LOGGER.isEnabledFor(logging.DEBUG):
-            LOGGER.debug("async_step_ssdp: discovery_info %s", pformat(discovery_info))
+            LOGGER.debug("async_step_ssdp: discovery_info %s",
+                         pformat(discovery_info))
 
         await self._async_set_info_from_discovery(discovery_info)
 
         if _is_ignored_device(discovery_info):
             return self.async_abort(reason="alternative_integration")
 
-        # Abort if the device doesn't support all services required for a DmrDevice.
-        if not _is_dmr_device(discovery_info):
-            return self.async_abort(reason="not_dmr")
+        # Abort if the device doesn't support all services required for a MusoDevice.
+        if not _is_muso_device(discovery_info):
+            return self.async_abort(reason="not_muso")
 
         # Abort if another config entry has the same location or MAC address, in
         # case the device doesn't have a static and unique UDN (breaking the
@@ -253,7 +258,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self._create_entry()
 
         self._set_confirm_only()
-        return self.async_show_form(step_id="confirm")
+        return self.async_show_form(step_id="confirm", description_placeholders={"device": self._name})
 
     async def _async_connect(self) -> None:
         """Connect to a device to confirm it works and gather extra information.
@@ -292,6 +297,8 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if not self._mac and (host := urlparse(self._location).hostname):
             self._mac = await _async_get_mac_address(self.hass, host)
+        # Maybe we should add validate input here?
+        # await validate_input(self.hass, {"host": self._location})
 
     def _create_entry(self) -> FlowResult:
         """Create a config entry, assuming all required information is now known."""
@@ -344,7 +351,8 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             # Set the MAC address for older entries
             if self._mac:
                 updates[CONF_MAC] = self._mac
-            self._abort_if_unique_id_configured(updates=updates, reload_on_update=False)
+            self._abort_if_unique_id_configured(
+                updates=updates, reload_on_update=False)
 
     async def _async_get_discoveries(self) -> list[ssdp.SsdpServiceInfo]:
         """Get list of unconfigured DLNA devices discovered by SSDP."""
@@ -368,6 +376,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         ]
 
         return discoveries
+
 
 def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     """Return True if this device should be ignored for discovery.
@@ -394,7 +403,8 @@ def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     # Special cases for devices with other discovery methods (e.g. mDNS), or
     # that advertise multiple unrelated (sent in separate discovery packets)
     # UPnP devices.
-    manufacturer = (discovery_info.upnp.get(ssdp.ATTR_UPNP_MANUFACTURER) or "").lower()
+    manufacturer = (discovery_info.upnp.get(
+        ssdp.ATTR_UPNP_MANUFACTURER) or "").lower()
     model = (discovery_info.upnp.get(ssdp.ATTR_UPNP_MODEL_NAME) or "").lower()
 
     if manufacturer.startswith("xbmc") or model == "kodi":
@@ -414,14 +424,16 @@ def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
 
     return False
 
-def _is_dmr_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
-    """Determine if discovery is a complete DLNA DMR device.
+
+def _is_muso_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
+    """Determine if discovery is a complete NAIM Mu-so device.
 
     Use the discovery_info instead of DmrDevice.is_profile_device to avoid
     contacting the device again.
     """
     # Abort if the device doesn't support all services required for a DmrDevice.
-    discovery_service_list = discovery_info.upnp.get(ssdp.ATTR_UPNP_SERVICE_LIST)
+    discovery_service_list = discovery_info.upnp.get(
+        ssdp.ATTR_UPNP_SERVICE_LIST)
     if not discovery_service_list:
         return False
 
@@ -429,7 +441,8 @@ def _is_dmr_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     if not services:
         discovery_service_ids: set[str] = set()
     elif isinstance(services, list):
-        discovery_service_ids = {service.get("serviceId") for service in services}
+        discovery_service_ids = {service.get(
+            "serviceId") for service in services}
     else:
         # Only one service defined (etree_to_dict failed to make a list)
         discovery_service_ids = {services.get("serviceId")}
@@ -438,6 +451,7 @@ def _is_dmr_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
         return False
 
     return True
+
 
 async def _async_get_mac_address(hass: HomeAssistant, host: str) -> str | None:
     """Get mac address from host name, IPv4 address, or IPv6 address."""

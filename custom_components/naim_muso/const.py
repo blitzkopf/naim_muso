@@ -14,6 +14,4 @@ CONF_BROWSE_UNFILTERED: Final = "browse_unfiltered"
 
 DEFAULT_NAME: Final = "Naim Mu-so speaker"
 
-
 DATA_NAIM_MUSO_DISCOVERY_MANAGER = "naim_muso_discovery_manager"
-
