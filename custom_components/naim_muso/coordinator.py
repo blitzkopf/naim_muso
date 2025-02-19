@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import asyncio
 from urllib.parse import urlparse
-from asyncio import TaskGroup, Task
+from asyncio import Task
 from async_upnp_client.utils import async_get_local_ip
 from async_upnp_client.exceptions import UpnpError
 
