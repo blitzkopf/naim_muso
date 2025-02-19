@@ -27,7 +27,7 @@ from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, CONF_MAC, CONF_TYPE, 
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import IntegrationError, HomeAssistantError
+from homeassistant.exceptions import IntegrationError
 from homeassistant.helpers import device_registry as dr
 
 
