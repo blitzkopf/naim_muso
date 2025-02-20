@@ -200,15 +200,36 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         self, media_content_type: str | None = None, media_content_id: str | None = None
     ) -> BrowseMedia:
         """ Browse available media, only radio presets for the moment"""
-        seq = []
-        for key, value in self._device.presets.items():
-            seq.append(BrowseMedia(media_class=MediaClass.CHANNEL, media_content_id=f"radio/{key}",
-                                   media_content_type=MediaType.CHANNEL, title=value,
-                                   can_play=True, can_expand=False))
-        return BrowseMedia(media_class=MediaClass.CHANNEL, media_content_id="presets",
-                           media_content_type=MediaType.CHANNEL, title="Presets",
-                           can_play=False, can_expand=True,
-                           children=seq, children_media_class=MediaClass.CHANNEL)
+        _LOGGER.debug("async_browse_media %s %s",
+                      media_content_type, media_content_id)
+        if media_content_id == "root" or media_content_id is None:
+            seq = []
+            for key, value in self._device.presets.items():
+                seq.append(BrowseMedia(media_class=MediaClass.CHANNEL, media_content_id=f"radio/{key}",
+                                       media_content_type=MediaType.CHANNEL, title=value,
+                                       can_play=True, can_expand=False))
+            seq.append(BrowseMedia(media_class=MediaClass.DIRECTORY, media_content_id="browse",
+                                   media_content_type=MediaType.CHANNELS, title="Browse",
+                                   can_play=False, can_expand=True))
+
+            return BrowseMedia(media_class=MediaClass.DIRECTORY, media_content_id="presets",
+                               media_content_type=MediaType.CHANNELS, title="Favourites",
+                               can_play=False, can_expand=True,
+                               children=seq, children_media_class=MediaClass.CHANNEL)
+        if media_content_id == "browse":
+            await self.coordinator.initiate_browsing()
+            kids = []
+            for row in self._device.state.rows["rows"]:
+                _LOGGER.debug("row: %s", row)
+                kids.append(BrowseMedia(media_class=MediaClass.CHANNEL, media_content_id=f"browse/{row["index"]}",
+                                        media_content_type=MediaType.CHANNEL, title=row["text"],
+                                        can_play=True, can_expand=False, thumbnail=row["metadata"]["albumart_url"]))
+            return BrowseMedia(media_class=MediaClass.DIRECTORY, media_content_id="root",
+                               media_content_type=MediaType.CHANNELS, title="Root",
+                               can_play=False, can_expand=True,
+                               children=kids
+                               )
+        return None
 
     # @catch_comm_error
     async def async_play_media(
@@ -219,6 +240,7 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         announce: bool | None = None, **kwargs: Any
     ) -> None:
         """Play a piece of media. Only working with iRadio presets for now"""
+        _LOGGER.debug("async_play_media %s %s", media_type, media_id)
         (_dummy, station) = media_id.split("/")
         await self._device.select_preset(station)
 
