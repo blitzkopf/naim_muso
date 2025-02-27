@@ -166,7 +166,7 @@ class MusoCoordinator(DataUpdateCoordinator):
     @property
     def unique_id(self) -> str:
         """Report the UDN (Unique Device Name) as this entity's unique ID."""
-        return self.udn
+        return self.udn[0]
 
     @property
     def usn(self) -> str:
@@ -250,42 +250,6 @@ class MusoCoordinator(DataUpdateCoordinator):
 
         # domain_data = get_domain_data(self.hass)
         # await domain_data.async_release_event_notifier(self._event_addr)
-
-    async def initiate_browsing(self):
-        """Initiate browsing."""
-
-        await self.device.controller.nvm.send_command(
-            "SETVIEWSTATE BROWSE", wait_for_reply_timeout=10
-        )
-        await self.device.controller.nvm.send_command("GETVIEWSTATE", wait_for_reply_timeout=10)
-        while self.device.state.viewstate["state"] != "BROWSE":
-
-            await asyncio.sleep(0.05)
-            await self.device.controller.nvm.send_command(
-                "GETVIEWSTATE", wait_for_reply_timeout=10
-            )
-
-        await asyncio.sleep(0.5)
-
-        await self.device.controller.send_command("GetViewState", wait_for_reply_timeout=10)
-        # await asyncio.sleep(0.5)
-        # await device.controller.send_command("GetNowPlaying")
-        # await asyncio.sleep(0.5)
-        await self.device.controller.send_command("GetActiveList", wait_for_reply_timeout=10)
-        list_handle = self.device.state.active_list["list_handle"]
-        # await device.controller.nvm.send_command("BROWSEPARENT")
-        # await asyncio.sleep(0.5)
-
-        list_handle = self.device.state.active_list["list_handle"]
-        await self.device.controller.send_command(
-            "GetRows",
-            [
-                {"item": {"name": "list_handle", "int": f"{list_handle}"}},
-                {"item": {"name": "from", "int": "1"}},
-                {"item": {"name": "to", "int": "24"}},
-            ],
-            wait_for_reply_timeout=10,
-        )
 
     async def devices_update_callback(self, state: NaimState):
         """Receive callback from api with device update."""
