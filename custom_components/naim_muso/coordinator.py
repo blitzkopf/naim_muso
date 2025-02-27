@@ -166,7 +166,7 @@ class MusoCoordinator(DataUpdateCoordinator):
     @property
     def unique_id(self) -> str:
         """Report the UDN (Unique Device Name) as this entity's unique ID."""
-        return self.udn
+        return self.udn[0]
 
     @property
     def usn(self) -> str:

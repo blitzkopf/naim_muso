@@ -2,6 +2,7 @@
 
 
 from typing import Any
+import datetime
 
 from naimco import NaimCo
 
@@ -12,9 +13,8 @@ from homeassistant.components.media_player import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
     BrowseMedia,
-    MediaClass,
-    MediaType,
-    MediaPlayerEnqueue
+    MediaPlayerEnqueue,
+    MediaType
 )
 
 from homeassistant.core import HomeAssistant, callback
@@ -24,6 +24,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import LOGGER as _LOGGER, DOMAIN
+from . import media_browser
 
 
 async def async_setup_entry(
@@ -52,6 +53,9 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         self.udn = coordinator.udn
         self.device_type = coordinator.device_type
         self._attr_name = coordinator.name
+        self._attr_unique_id = coordinator.unique_id
+        _LOGGER.debug("NaimMediaPlayer.__init__ unique_id %s",
+                      self._attr_unique_id)
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -79,6 +83,10 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         else:
             return False
 
+    # @property
+    # def unique_id(self) -> str:
+    #     self.coordinator.unique_id
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return the device info."""
@@ -86,7 +94,8 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         return DeviceInfo(
             identifiers={
                 # Serial numbers are unique identifiers within a specific domain
-                (DOMAIN, self._device.serialnum)
+                # (DOMAIN, self._device.serialnum)
+                (DOMAIN, self.unique_id)
             },
             name=self._attr_name,
             manufacturer='Naim Audio Ltd.',  # self.light.manufacturername,
@@ -107,25 +116,53 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         supported_features = (
             MediaPlayerEntityFeature.TURN_ON
             | MediaPlayerEntityFeature.TURN_OFF
+            | MediaPlayerEntityFeature.VOLUME_MUTE
             | MediaPlayerEntityFeature.VOLUME_SET
             | MediaPlayerEntityFeature.VOLUME_STEP
             | MediaPlayerEntityFeature.SELECT_SOURCE
             | MediaPlayerEntityFeature.BROWSE_MEDIA
             | MediaPlayerEntityFeature.PLAY_MEDIA
+            | MediaPlayerEntityFeature.STOP
+            | MediaPlayerEntityFeature.PAUSE
+            | MediaPlayerEntityFeature.PLAY
+            | MediaPlayerEntityFeature.NEXT_TRACK
+            | MediaPlayerEntityFeature.PREVIOUS_TRACK
+            | MediaPlayerEntityFeature.SEEK
         )
         return supported_features
 
-    # @catch_comm_error
     async def async_turn_on(self) -> None:
         """Turn the media player off."""
         await self._device.on()
 
-    # @catch_comm_error
     async def async_turn_off(self) -> None:
         """Turn the media player off."""
         await self._device.off()
 
-    # @catch_comm_error
+    async def async_media_stop(self) -> None:
+        """Stop media playing."""
+        await self._device.stop()
+
+    async def async_media_pause(self) -> None:
+        """Pause media playing."""
+        await self._device.pause()
+
+    async def async_media_play(self) -> None:
+        """Play media."""
+        await self._device.play()
+
+    async def async_media_next_track(self) -> None:
+        """Send next track command."""
+        await self._device.nexttrack()
+
+    async def async_media_previous_track(self) -> None:
+        """Send next track command."""
+        await self._device.prevtrack()
+
+    async def async_mute_volume(self, mute: bool) -> None:
+        """Mute the volume."""
+        await self._device.mute(mute)
+
     async def async_volume_up(self) -> None:
         """Turn volume up for media player.
 
@@ -133,7 +170,6 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         """
         await self._device.volume_up()
 
-    # @catch_comm_error
     async def async_volume_down(self) -> None:
         """Turn volume down for media player.
 
@@ -141,7 +177,6 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         """
         await self._device.volume_down()
 
-    # @catch_comm_error
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         await self._device.set_volume(int(100 * volume))
@@ -155,6 +190,11 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         return None
 
     @property
+    def is_volume_muted(self) -> bool | None:
+        """Boolean if volume is currently muted."""
+        return self._device.is_muted
+
+    @property
     def state(self) -> MediaPlayerState | None:
         """State of the player. Is it on or off?"""
 
@@ -165,8 +205,15 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         except AttributeError:
             return None
         if stbystate == "ON":
-            # return MediaPlayerState.OFF
-            return MediaPlayerState.STANDBY
+            return MediaPlayerState.OFF
+            # return MediaPlayerState.STANDBY
+        if self._device.state.bufferstate and int(self._device.state.bufferstate) < 20:
+            return MediaPlayerState.BUFFERING
+        if self._device.state.viewstate and self._device.state.viewstate.get("phase") == "PAUSE":
+            return MediaPlayerState.PAUSED
+        if self._device.state.viewstate and self._device.state.viewstate.get("state") == "PLAYING":
+            return MediaPlayerState.PLAYING
+
         if stbystate == "OFF":
             return MediaPlayerState.ON
         # TOD O: There are other states to consider
@@ -188,7 +235,6 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         # _LOGGER.debug("Source_list inputs: %s", inputs)
         return list(inputs.values())
 
-    # @catch_comm_error
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
         inputs = self._device.inputs
@@ -199,18 +245,10 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     async def async_browse_media(
         self, media_content_type: str | None = None, media_content_id: str | None = None
     ) -> BrowseMedia:
-        """ Browse available media, only radio presets for the moment"""
-        seq = []
-        for key, value in self._device.presets.items():
-            seq.append(BrowseMedia(media_class=MediaClass.CHANNEL, media_content_id=f"radio/{key}",
-                                   media_content_type=MediaType.CHANNEL, title=value,
-                                   can_play=True, can_expand=False))
-        return BrowseMedia(media_class=MediaClass.CHANNEL, media_content_id="presets",
-                           media_content_type=MediaType.CHANNEL, title="Presets",
-                           can_play=False, can_expand=True,
-                           children=seq, children_media_class=MediaClass.CHANNEL)
+        """ Browse available media, only radio presets for the moment and NAIM supplies channels"""
+        # browse_media code is messy, keep it a separate file
+        return await media_browser.async_browse_media(self._device, media_content_type, media_content_id)
 
-    # @catch_comm_error
     async def async_play_media(
         self,
         media_type: str,
@@ -219,8 +257,36 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         announce: bool | None = None, **kwargs: Any
     ) -> None:
         """Play a piece of media. Only working with iRadio presets for now"""
-        (_dummy, station) = media_id.split("/")
-        await self._device.select_preset(station)
+        return await media_browser.async_play_media(self._device, media_type, media_id, enqueue, announce, **kwargs)
+
+    @property
+    def media_content_type(self) -> MediaType | str | None:
+        """Source of current playing media."""
+
+        source = self._device.media_source
+        if source == "iradio":
+            return MediaType.CHANNEL
+        if source in ("spotify", "tidal"):
+            return MediaType.TRACK
+        if source == "upnp":
+            return MediaType.TRACK
+
+        return None
+
+    @property
+    def media_duration(self) -> int | None:
+        """Duration of current playing media in seconds."""
+        return self._device.media_duration
+
+    @property
+    def media_position(self) -> int | None:
+        """Position of current playing media in seconds."""
+        return self._device.now_playing_time
+
+    @property
+    def media_position_updated_at(self) -> datetime.datetime | None:
+        """When was the position of the current playing media valid."""
+        return self._device.state.last_update.get("now_playing_time", None)
 
     @property
     def media_image_url(self) -> str | None:
