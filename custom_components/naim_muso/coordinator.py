@@ -11,6 +11,7 @@ from async_upnp_client.exceptions import UpnpError
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID, CONF_MAC, CONF_TYPE, CONF_URL
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -22,7 +23,7 @@ from homeassistant.helpers.update_coordinator import (
 from naimco import NaimCo, NaimState
 
 from .const import (
-    LOGGER as _LOGGER,
+    LOGGER as _LOGGER, DOMAIN
 )
 from .data import get_domain_data
 
@@ -178,6 +179,23 @@ class MusoCoordinator(DataUpdateCoordinator):
         # if not self._device:
         #     raise ConfigEntryNotReady("device not connected")
         return self._device
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info."""
+        _LOGGER.debug("device_info serialnum: %s", self._device.serialnum)
+        return DeviceInfo(
+            identifiers={
+                # Serial numbers are unique identifiers within a specific domain
+                # (DOMAIN, self._device.serialnum)
+                (DOMAIN, self.unique_id)
+            },
+            name=self._attr_name,
+            manufacturer='Naim Audio Ltd.',  # self.light.manufacturername,
+            model='Mu-so',  # self.light.productname,
+            # sw_version=self.light.swversion,
+            # via_device=(hue.DOMAIN, self.api.bridgeid),
+        )
 
     async def _device_connect(self, location: str) -> None:
         """Connect to the device now that it's available."""
