@@ -90,19 +90,7 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return the device info."""
-        _LOGGER.debug("device_info serialnum: %s", self._device.serialnum)
-        return DeviceInfo(
-            identifiers={
-                # Serial numbers are unique identifiers within a specific domain
-                # (DOMAIN, self._device.serialnum)
-                (DOMAIN, self.unique_id)
-            },
-            name=self._attr_name,
-            manufacturer='Naim Audio Ltd.',  # self.light.manufacturername,
-            model='Mu-so',  # self.light.productname,
-            # sw_version=self.light.swversion,
-            # via_device=(hue.DOMAIN, self.api.bridgeid),
-        )
+        return self.coordinator.device_info
 
     @property
     def supported_features(self) -> MediaPlayerEntityFeature:
@@ -197,16 +185,17 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     @property
     def state(self) -> MediaPlayerState | None:
         """State of the player. Is it on or off?"""
-
+        stbystate = None
         if not self._device or not self.available:
             return None
         try:
             stbystate = self._device.standbystatus.get("state")
+            if stbystate == "ON":
+                return MediaPlayerState.OFF
+                # return MediaPlayerState.STANDBY
         except AttributeError:
-            return None
-        if stbystate == "ON":
-            return MediaPlayerState.OFF
-            # return MediaPlayerState.STANDBY
+            # return None
+            pass
         if self._device.state.bufferstate and int(self._device.state.bufferstate) < 20:
             return MediaPlayerState.BUFFERING
         if self._device.state.viewstate and self._device.state.viewstate.get("phase") == "PAUSE":
@@ -214,7 +203,7 @@ class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
         if self._device.state.viewstate and self._device.state.viewstate.get("state") == "PLAYING":
             return MediaPlayerState.PLAYING
 
-        if stbystate == "OFF":
+        if stbystate and stbystate == "OFF":
             return MediaPlayerState.ON
         # TOD O: There are other states to consider
         return MediaPlayerState.IDLE

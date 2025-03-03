@@ -14,7 +14,7 @@ from .coordinator import MusoCoordinator
 from .const import LOGGER as _LOGGER
 
 
-PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
+PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.SENSOR]
 
 
 @dataclass
