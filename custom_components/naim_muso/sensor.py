@@ -7,7 +7,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.core import callback
 from .coordinator import MusoCoordinator
 from homeassistant.const import UnitOfTemperature, UnitOfElectricPotential
-from typing import Any, Optional
+from typing import Optional
 from dataclasses import dataclass
 from .const import LOGGER as _LOGGER, DOMAIN
 from naimco import NaimCo

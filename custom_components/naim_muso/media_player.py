@@ -23,7 +23,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import LOGGER as _LOGGER, DOMAIN
+from .const import LOGGER as _LOGGER
 from . import media_browser
 
 
