@@ -164,6 +164,13 @@ class MusoCoordinator(DataUpdateCoordinator):
         # await asyncio.sleep(0.1)
         return self._device.state
 
+    async def async_shutdown(self) -> None:
+        """Run shutdown clean up."""
+        _LOGGER.debug("Shutting down coordinator")
+        await super().async_shutdown()
+        await self._device_disconnect()
+        # await self.disconnect_api()
+
     @property
     def unique_id(self) -> str:
         """Report the UDN (Unique Device Name) as this entity's unique ID."""
