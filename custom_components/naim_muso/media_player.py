@@ -22,6 +22,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
+from .base_entity import BaseEntity
 
 from .const import LOGGER as _LOGGER
 from . import media_browser
@@ -38,24 +39,23 @@ async def async_setup_entry(
 
     # Create our own device-wrapping entity
     entity = NaimMediaPlayer(
-        coordinator=entry.runtime_data.coordinator
+        coordinator=entry.runtime_data.coordinator,
+        parameter=None
     )
 
     async_add_entities([entity])
 
 
-class NaimMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
+class NaimMediaPlayer(BaseEntity, MediaPlayerEntity):
     """NaimMediaPlayer to interface with naim Mu-so."""
+    _attr_name = None
 
-    def __init__(self, coordinator):
-        """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
-        self.udn = coordinator.udn
-        self.device_type = coordinator.device_type
-        self._attr_name = coordinator.name
-        self._attr_unique_id = coordinator.unique_id
-        _LOGGER.debug("NaimMediaPlayer.__init__ unique_id %s",
-                      self._attr_unique_id)
+    # def __init__(self, coordinator):
+    #     """Pass coordinator to CoordinatorEntity."""
+    #     super().__init__(coordinator)
+    #     self._attr_unique_id = coordinator.unique_id
+    #     _LOGGER.debug("NaimMediaPlayer.__init__ unique_id %s",
+    #                   self._attr_unique_id)
 
     @callback
     def _handle_coordinator_update(self) -> None:

@@ -23,5 +23,38 @@
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
+  },
+  "entity": {
+    "light": {
+      "illum": {
+        "name": "Illumination"
+      }
+    },
+    "sensor": {
+      "Psu": {
+        "name": "PSU temperature"
+      },
+      "MAIN": {
+        "name": "Main temperature"
+      },
+      "1V2": {
+        "name": "1.2V rail"
+      },
+      "1V9": {
+        "name": "1.9V rail"
+      },
+      "3V3": {
+        "name": "3.3V rail"
+      },
+      "5V": {
+        "name": "5V rail"
+      },
+      "1V85": {
+        "name": "1.85V rail"
+      },
+      "36V": {
+        "name": "36V rail"
+      }
+    }
   }
 }
