@@ -20,7 +20,6 @@ from homeassistant.components.media_player import (
 from homeassistant.core import HomeAssistant, callback
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 from .base_entity import BaseEntity
 
