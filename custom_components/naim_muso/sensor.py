@@ -16,6 +16,7 @@ class SensorTypeClass:
 
     type: str
     sensor_class: object
+    translation_key: str = None
 
 
 async def async_setup_entry(
@@ -36,14 +37,14 @@ async def async_setup_entry(
     # ----------------------------------------------------------------------------
     # TODO: make this dynamic, other players might have different sensors
     sensor_types = [
-        SensorTypeClass("Psu", MusoTemperatureSensor),
-        SensorTypeClass("MAIN", MusoTemperatureSensor),
-        SensorTypeClass("1V2", MusoVoltageSensor),
-        SensorTypeClass("1V9", MusoVoltageSensor),
-        SensorTypeClass("3V3", MusoVoltageSensor),
-        SensorTypeClass("5V", MusoVoltageSensor),
-        SensorTypeClass("1V85", MusoVoltageSensor),
-        SensorTypeClass("36V", MusoVoltageSensor),
+        SensorTypeClass("Psu", MusoTemperatureSensor, "psu"),
+        SensorTypeClass("MAIN", MusoTemperatureSensor, "main"),
+        SensorTypeClass("1V2", MusoVoltageSensor, "v1_2"),
+        SensorTypeClass("1V9", MusoVoltageSensor, "v1_9"),
+        SensorTypeClass("3V3", MusoVoltageSensor, "v3_3"),
+        SensorTypeClass("5V", MusoVoltageSensor, "v5"),
+        SensorTypeClass("1V85", MusoVoltageSensor, "v1_85"),
+        SensorTypeClass("36V", MusoVoltageSensor, "v36"),
     ]
     _LOGGER.debug("media_player.async_setup_entry %s (%s)",
                   config_entry.entry_id, config_entry.title)

@@ -27,14 +27,14 @@ class BaseEntity(CoordinatorEntity):
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: MusoCoordinator, parameter: str
+        self, coordinator: MusoCoordinator, parameter: str, translation_key: str = None
     ) -> None:
         """Initialise entity."""
         super().__init__(coordinator)
         self.udn = coordinator.udn
         self.device_type = coordinator.device_type
         # self._attr_name = coordinator.name
-        self._attr_translation_key = parameter
+        self._attr_translation_key = translation_key or parameter
         # self._attr_translation_key = "illum"
 
         # self._attr_unique_id = coordinator.unique_id

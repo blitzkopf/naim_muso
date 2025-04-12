@@ -31,28 +31,28 @@
       }
     },
     "sensor": {
-      "Psu": {
+      "psu": {
         "name": "PSU temperature"
       },
-      "MAIN": {
+      "main": {
         "name": "Main temperature"
       },
-      "1V2": {
+      "v1_2": {
         "name": "1.2V rail"
       },
-      "1V9": {
+      "v1_9": {
         "name": "1.9V rail"
       },
-      "3V3": {
+      "v3_3": {
         "name": "3.3V rail"
       },
-      "5V": {
+      "v5": {
         "name": "5V rail"
       },
-      "1V85": {
+      "v1_85": {
         "name": "1.85V rail"
       },
-      "36V": {
+      "v36": {
         "name": "36V rail"
       }
     }
