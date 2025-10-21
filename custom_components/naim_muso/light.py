@@ -23,7 +23,7 @@ async def async_setup_entry(
     # This gets the data update coordinator from the config entry runtime data as specified in your __init__.py
     coordinator: MusoCoordinator = config_entry.runtime_data.coordinator
 
-    light = MusoIllumination(coordinator, 'illum')
+    light = MusoIllumination(coordinator, "illum")
 
     async_add_entities([light])
 
@@ -37,8 +37,7 @@ class MusoIllumination(BaseEntity, LightEntity):
     @property
     def brightness(self) -> Optional[int]:
         """Return the current brightness."""
-        _LOGGER.debug("MusoIllumination.brightness %s",
-                      self._device.state.illum)
+        _LOGGER.debug("MusoIllumination.brightness %s", self._device.state.illum)
         return value_to_brightness(BRIGHTNESS_SCALE, self._device.state.illum)
 
     @property
@@ -54,8 +53,11 @@ class MusoIllumination(BaseEntity, LightEntity):
     async def async_turn_on(self, **kwargs) -> None:
         """Turn illuminatio on."""
         if ATTR_BRIGHTNESS in kwargs:
-            value_in_range = int(math.ceil(brightness_to_value(
-                BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS])))
+            value_in_range = int(
+                math.ceil(
+                    brightness_to_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS])
+                )
+            )
             await self._device.set_illum(value_in_range)
         else:
             await self._device.set_illum(3)

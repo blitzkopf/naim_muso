@@ -51,7 +51,7 @@ def catch_comm_error(func):
         try:
             return await func(*args, **kwargs)
         except Exception as ex:
-            _LOGGER.warn(
+            _LOGGER.warning(
                 f"{func.__name__} failed to communuicate with Mu-so {ex}\n")
             raise
     return wrapper
