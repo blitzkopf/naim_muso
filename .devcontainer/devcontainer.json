@@ -1,15 +1,12 @@
 {
     "name": "HA Naim Dev Container",
-    "image": "mcr.microsoft.com/devcontainers/python:1-3.13",
+    "image": "mcr.microsoft.com/devcontainers/python:3.13",
     "postCreateCommand": "scripts/setup",
+    // "postStartCommand": "bash devcontainer_bootstrap",
     "runArgs": [
         "--net=host",
         "-e",
-        "GIT_EDITOR=code --wait"
-    ],
-    "mounts": [
-        // mount python package NaimCo if you need to do parallel development on it
-        "source=${localWorkspaceFolder}/../NaimCo,target=${containerWorkspaceFolder}/../NaimCo,type=bind"
+        "GIT_EDITOR=code --wait",
     ],
     /*"forwardPorts": [
         8123
@@ -20,6 +17,10 @@
             "onAutoForward": "notify"
         }
      },*/
+    "mounts": [
+        // mount python package NaimCo if you need to do parallel development on it
+        "source=${localWorkspaceFolder}/../NaimCo,target=${containerWorkspaceFolder}/../NaimCo,type=bind",
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
@@ -36,21 +37,28 @@
             "settings": {
                 "files.eol": "\n",
                 "editor.tabSize": 4,
-                "python.pythonPath": "/usr/bin/python3",
-                "python.analysis.autoSearchPaths": false,
-                "python.linting.pylintEnabled": true,
-                "python.linting.enabled": true,
-                "python.formatting.provider": "black",
-                "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
-                "editor.formatOnPaste": false,
+                "editor.formatOnPaste": true,
                 "editor.formatOnSave": true,
                 "editor.formatOnType": true,
-                "files.trimTrailingWhitespace": true
-            }
+                "files.trimTrailingWhitespace": true,
+                "python.analysis.typeCheckingMode": "basic",
+                "python.analysis.autoImportCompletions": true,
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff"
+                }
+            },
+            "terminal.integrated.defaultProfile.linux": "zsh",
+            "editor.formatOnPaste": false,
+            "editor.formatOnSave": true,
+            "editor.formatOnType": true,
+            "files.trimTrailingWhitespace": true
         }
     },
     "remoteUser": "vscode",
     "features": {
-        "ghcr.io/devcontainers/features/rust:1": {}
+    	"ghcr.io/devcontainers-extra/features/apt-packages:1": {
+            "packages": "ffmpeg,libturbojpeg0,libpcap-dev"
+        }
     }
 }
