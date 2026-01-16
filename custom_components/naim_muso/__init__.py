@@ -15,7 +15,7 @@ from .const import LOGGER as _LOGGER
 
 
 PLATFORMS: list[Platform] = [
-    Platform.MEDIA_PLAYER, Platform.SENSOR, Platform.LIGHT]
+    Platform.MEDIA_PLAYER, Platform.SENSOR, Platform.LIGHT, Platform.BUTTON, Platform.SWITCH]
 
 
 @dataclass
