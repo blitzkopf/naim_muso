@@ -133,7 +133,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_manual()
 
         self._discoveries = {
-            discovery.upnp.get(ssdp.ATTR_UPNP_FRIENDLY_NAME)
+            discovery.upnp.get(ssdp.friendlyName)
             or cast(str, urlparse(discovery.ssdp_location).hostname): discovery
             for discovery in discoveries
         }
@@ -337,7 +337,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._device_type = discovery_info.ssdp_nt or discovery_info.ssdp_st
         self._name = (
-            discovery_info.upnp.get(ssdp.ATTR_UPNP_FRIENDLY_NAME)
+            discovery_info.upnp.get(ssdp.friendlyName)
             or urlparse(self._location).hostname
             or DEFAULT_NAME
         )
@@ -395,7 +395,7 @@ def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
 
     # Is the root device not a DMR?
     if (
-        discovery_info.upnp.get(ssdp.ATTR_UPNP_DEVICE_TYPE)
+        discovery_info.upnp.get(ssdp.deviceType)
         not in DmrDevice.DEVICE_TYPES
     ):
         return True
@@ -404,8 +404,8 @@ def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     # that advertise multiple unrelated (sent in separate discovery packets)
     # UPnP devices.
     manufacturer = (discovery_info.upnp.get(
-        ssdp.ATTR_UPNP_MANUFACTURER) or "").lower()
-    model = (discovery_info.upnp.get(ssdp.ATTR_UPNP_MODEL_NAME) or "").lower()
+        ssdp.manufacturer) or "").lower()
+    model = (discovery_info.upnp.get(ssdp.modelName) or "").lower()
 
     if manufacturer.startswith("xbmc") or model == "kodi":
         # kodi
@@ -433,7 +433,7 @@ def _is_muso_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     """
     # Abort if the device doesn't support all services required for a DmrDevice.
     discovery_service_list = discovery_info.upnp.get(
-        ssdp.ATTR_UPNP_SERVICE_LIST)
+        ssdp.serviceList)
     if not discovery_service_list:
         return False
 
