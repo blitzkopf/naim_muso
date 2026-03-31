@@ -1,4 +1,5 @@
 """The naim Mu-so controller integration."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,7 +16,11 @@ from .const import LOGGER as _LOGGER
 
 
 PLATFORMS: list[Platform] = [
-    Platform.MEDIA_PLAYER, Platform.SENSOR, Platform.LIGHT]
+    Platform.MEDIA_PLAYER,
+    Platform.SENSOR,
+    Platform.LIGHT,
+    Platform.SWITCH,
+]
 
 
 @dataclass
@@ -63,8 +68,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 async def _async_update_listener(hass: HomeAssistant, config_entry):
     """Handle config options update."""
     # Reload the integration when the options change.
-    _LOGGER.debug("Updating: %s with data=%s and options=%s",
-                  config_entry.entry_id, config_entry.data, config_entry.options)
+    _LOGGER.debug(
+        "Updating: %s with data=%s and options=%s",
+        config_entry.entry_id,
+        config_entry.data,
+        config_entry.options,
+    )
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
