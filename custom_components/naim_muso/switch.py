@@ -22,7 +22,7 @@ async def async_setup_entry(
         "switch.async_setup_entry called for %s (%s)", entry.entry_id, entry.title
     )
 
-    coordinator = entry.runtime_data.coordinator
+    coordinator: MusoCoordinator = entry.runtime_data.coordinator
 
     if not coordinator._device:
         _LOGGER.warning("Device not ready, skipping switch setup")
@@ -37,7 +37,7 @@ class NaimCleaningModeSwitch(BaseEntity, SwitchEntity):
     _attr_icon = "mdi:spray-bottle"
     _attr_translation_key = "cleaning_mode"
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: MusoCoordinator) -> None:
         """Initialize the switch entity."""
         super().__init__(coordinator, parameter="cleaning_mode")
         self._attr_name = "Cleaning Mode"
