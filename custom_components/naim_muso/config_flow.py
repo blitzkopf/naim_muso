@@ -1,4 +1,5 @@
 """Config flow for naim Mu-so controller integration."""
+
 from __future__ import annotations
 
 import logging
@@ -12,7 +13,7 @@ from ipaddress import IPv6Address, ip_address
 
 from urllib.parse import urlparse
 
-from async_upnp_client.client import UpnpError
+from async_upnp_client.exceptions import UpnpError
 from async_upnp_client.profiles.dlna import DmrDevice
 from async_upnp_client.profiles.profile import find_device_of_type
 from getmac import get_mac_address
@@ -22,8 +23,18 @@ from naimco import NaimCo
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components import ssdp
-from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, CONF_MAC, CONF_TYPE, CONF_URL, CONF_IP_ADDRESS
+
+# from homeassistant.components import ssdp
+from homeassistant.helpers.service_info import ssdp
+
+from homeassistant.const import (
+    CONF_DEVICE_ID,
+    CONF_HOST,
+    CONF_MAC,
+    CONF_TYPE,
+    CONF_URL,
+    CONF_IP_ADDRESS,
+)
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
@@ -81,7 +92,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     # InvalidAuth
 
     # We need to close the connection before returning,
-    await device.controller.shutdown()
+    await device.shutdown()
 
     # Return info that you want to store in the config entry.
     return {"title": "Mu-so ip address"}
@@ -110,8 +121,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     #     """Define the config flow to handle options."""
     #     return DlnaDmrOptionsFlowHandler(config_entry)
 
-    async def async_step_user(
-            self, user_input: FlowInput = None) -> FlowResult:
+    async def async_step_user(self, user_input: FlowInput = None) -> FlowResult:
         """Handle a flow initialized by the user.
 
         Let user choose from a list of found and unconfigured devices or to
@@ -133,7 +143,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_manual()
 
         self._discoveries = {
-            discovery.upnp.get(ssdp.friendlyName)
+            discovery.upnp.get(ssdp.ATTR_UPNP_FRIENDLY_NAME)
             or cast(str, urlparse(discovery.ssdp_location).hostname): discovery
             for discovery in discoveries
         }
@@ -152,7 +162,9 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         errors = {}
         if user_input is not None:
-            self._location = f"http://{user_input[CONF_IP_ADDRESS]}:8080/description.xml"
+            self._location = (
+                f"http://{user_input[CONF_IP_ADDRESS]}:8080/description.xml"
+            )
             try:
                 await self._async_connect()
             except ConnectError as err:
@@ -168,8 +180,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_ssdp(self, discovery_info: ssdp.SsdpServiceInfo) -> FlowResult:
         """Handle a flow initialized by SSDP discovery."""
         if LOGGER.isEnabledFor(logging.DEBUG):
-            LOGGER.debug("async_step_ssdp: discovery_info %s",
-                         pformat(discovery_info))
+            LOGGER.debug("async_step_ssdp: discovery_info %s", pformat(discovery_info))
 
         await self._async_set_info_from_discovery(discovery_info)
 
@@ -258,7 +269,9 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self._create_entry()
 
         self._set_confirm_only()
-        return self.async_show_form(step_id="confirm", description_placeholders={"device": self._name})
+        return self.async_show_form(
+            step_id="confirm", description_placeholders={"device": self._name}
+        )
 
     async def _async_connect(self) -> None:
         """Connect to a device to confirm it works and gather extra information.
@@ -337,7 +350,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._device_type = discovery_info.ssdp_nt or discovery_info.ssdp_st
         self._name = (
-            discovery_info.upnp.get(ssdp.friendlyName)
+            discovery_info.upnp.get(ssdp.ATTR_UPNP_FRIENDLY_NAME)
             or urlparse(self._location).hostname
             or DEFAULT_NAME
         )
@@ -351,8 +364,7 @@ class NaimMusoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             # Set the MAC address for older entries
             if self._mac:
                 updates[CONF_MAC] = self._mac
-            self._abort_if_unique_id_configured(
-                updates=updates, reload_on_update=False)
+            self._abort_if_unique_id_configured(updates=updates, reload_on_update=False)
 
     async def _async_get_discoveries(self) -> list[ssdp.SsdpServiceInfo]:
         """Get list of unconfigured DLNA devices discovered by SSDP."""
@@ -395,7 +407,7 @@ def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
 
     # Is the root device not a DMR?
     if (
-        discovery_info.upnp.get(ssdp.deviceType)
+        discovery_info.upnp.get(ssdp.ATTR_UPNP_DEVICE_TYPE)
         not in DmrDevice.DEVICE_TYPES
     ):
         return True
@@ -403,9 +415,8 @@ def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     # Special cases for devices with other discovery methods (e.g. mDNS), or
     # that advertise multiple unrelated (sent in separate discovery packets)
     # UPnP devices.
-    manufacturer = (discovery_info.upnp.get(
-        ssdp.manufacturer) or "").lower()
-    model = (discovery_info.upnp.get(ssdp.modelName) or "").lower()
+    manufacturer = (discovery_info.upnp.get(ssdp.ATTR_UPNP_MANUFACTURER) or "").lower()
+    model = (discovery_info.upnp.get(ssdp.ATTR_UPNP_MODEL_NAME) or "").lower()
 
     if manufacturer.startswith("xbmc") or model == "kodi":
         # kodi
@@ -432,8 +443,7 @@ def _is_muso_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     contacting the device again.
     """
     # Abort if the device doesn't support all services required for a DmrDevice.
-    discovery_service_list = discovery_info.upnp.get(
-        ssdp.serviceList)
+    discovery_service_list = discovery_info.upnp.get(ssdp.ATTR_UPNP_SERVICE_LIST)
     if not discovery_service_list:
         return False
 
@@ -441,8 +451,7 @@ def _is_muso_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     if not services:
         discovery_service_ids: set[str] = set()
     elif isinstance(services, list):
-        discovery_service_ids = {service.get(
-            "serviceId") for service in services}
+        discovery_service_ids = {service.get("serviceId") for service in services}
     else:
         # Only one service defined (etree_to_dict failed to make a list)
         discovery_service_ids = {services.get("serviceId")}

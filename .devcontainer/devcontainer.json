@@ -1,6 +1,6 @@
 {
     "name": "HA Naim Dev Container",
-    "image": "mcr.microsoft.com/devcontainers/python:3.13",
+    "image": "mcr.microsoft.com/devcontainers/python:3.14",
     "postCreateCommand": "scripts/setup",
     // "postStartCommand": "bash devcontainer_bootstrap",
     "runArgs": [
@@ -57,7 +57,7 @@
     },
     "remoteUser": "vscode",
     "features": {
-    	"ghcr.io/devcontainers-extra/features/apt-packages:1": {
+        "ghcr.io/devcontainers-extra/features/apt-packages:1": {
             "packages": "ffmpeg,libturbojpeg0,libpcap-dev"
         }
     }
