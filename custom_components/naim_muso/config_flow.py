@@ -3,49 +3,40 @@
 from __future__ import annotations
 
 import logging
-from pprint import pformat
-
-from typing import Any, cast
 from collections.abc import Mapping
 from functools import partial
 from ipaddress import IPv6Address, ip_address
-
-
+from pprint import pformat
+from typing import Any, cast
 from urllib.parse import urlparse
 
+import voluptuous as vol
 from async_upnp_client.exceptions import UpnpError
 from async_upnp_client.profiles.dlna import DmrDevice
 from async_upnp_client.profiles.profile import find_device_of_type
 from getmac import get_mac_address
-
-
-from naimco import NaimCo
-import voluptuous as vol
-
 from homeassistant import config_entries
-
-# from homeassistant.components import ssdp
-from homeassistant.helpers.service_info import ssdp
-
 from homeassistant.const import (
     CONF_DEVICE_ID,
     CONF_HOST,
+    CONF_IP_ADDRESS,
     CONF_MAC,
     CONF_TYPE,
     CONF_URL,
-    CONF_IP_ADDRESS,
 )
-
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import IntegrationError
 from homeassistant.helpers import device_registry as dr
 
+# from homeassistant.components import ssdp
+from homeassistant.helpers.service_info import ssdp
+from naimco import NaimCo
 
 from .const import (
+    CONF_POLL_AVAILABILITY,
     DEFAULT_NAME,
     DOMAIN,
-    CONF_POLL_AVAILABILITY,
 )
 from .data import get_domain_data
 
@@ -429,7 +420,7 @@ def _is_ignored_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
     if manufacturer.startswith("samsung") and "tv" in model:
         # samsungtv
         return True
-    if manufacturer.startswith("lg") and "tv" in model:
+    if manufacturer.startswith("lg") and "tv" in model:  # noqa: SIM103
         # webostv
         return True
 
@@ -456,10 +447,7 @@ def _is_muso_device(discovery_info: ssdp.SsdpServiceInfo) -> bool:
         # Only one service defined (etree_to_dict failed to make a list)
         discovery_service_ids = {services.get("serviceId")}
 
-    if not DmrDevice.SERVICE_IDS.issubset(discovery_service_ids):
-        return False
-
-    return True
+    return DmrDevice.SERVICE_IDS.issubset(discovery_service_ids)
 
 
 async def _async_get_mac_address(hass: HomeAssistant, host: str) -> str | None:

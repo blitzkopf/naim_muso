@@ -1,13 +1,15 @@
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
-from homeassistant.helpers.entity import EntityCategory
-from .coordinator import MusoCoordinator
-from homeassistant.const import UnitOfTemperature, UnitOfElectricPotential
 from dataclasses import dataclass
-from .const import LOGGER as _LOGGER
+
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfElectricPotential, UnitOfTemperature
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 from .base_entity import BaseEntity
+from .const import LOGGER as _LOGGER
+from .coordinator import MusoCoordinator
 
 
 @dataclass

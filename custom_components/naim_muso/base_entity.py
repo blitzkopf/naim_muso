@@ -1,8 +1,10 @@
-from typing import Optional
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from typing import cast
+
 from homeassistant.core import callback
-from naimco import NaimCo
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from naimco import NaimCo
+
 from .const import DOMAIN
 from .coordinator import MusoCoordinator
 
@@ -27,7 +29,10 @@ class BaseEntity(CoordinatorEntity):
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: MusoCoordinator, parameter: str, translation_key: str = None
+        self,
+        coordinator: MusoCoordinator,
+        parameter: str | None,
+        translation_key: str | None = None,
     ) -> None:
         """Initialise entity."""
         super().__init__(coordinator)
@@ -57,13 +62,13 @@ class BaseEntity(CoordinatorEntity):
         self.async_write_ha_state()
 
     @property
-    def _device(self) -> Optional[NaimCo]:
-        return self.coordinator._device
+    def _device(self) -> NaimCo | None:
+        return cast(MusoCoordinator, self.coordinator)._device
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
-        return self.coordinator.device_info
+        return cast(MusoCoordinator, self.coordinator).device_info
 
     # @property
     # def name(self) -> str:
@@ -96,3 +101,13 @@ class BaseEntity(CoordinatorEntity):
         # This is even more important if your integration supports multiple instances.
         # ----------------------------------------------------------------------------
         return f"{DOMAIN}-{self.device_id}-{self.parameter}"
+
+
+def ensure_device(func):
+    def wrapper(self, *args, **kwargs):
+        if self._device:
+            return func(self, *args, **kwargs)
+        else:
+            return None
+
+    return wrapper

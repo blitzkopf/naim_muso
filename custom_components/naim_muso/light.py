@@ -1,15 +1,15 @@
-from typing import Optional
 import math
-from homeassistant.components.light import LightEntity, ColorMode, ATTR_BRIGHTNESS
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.util.color import value_to_brightness, brightness_to_value
+from typing import ClassVar
 
+from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from .base_entity import BaseEntity
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util.color import brightness_to_value, value_to_brightness
+
 from . import MusoCoordinator
-from .const import LOGGER as _LOGGER
+from .base_entity import BaseEntity
 
 BRIGHTNESS_SCALE = (1, 3)
 
@@ -31,19 +31,22 @@ async def async_setup_entry(
 class MusoIllumination(BaseEntity, LightEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+    _attr_supported_color_modes: ClassVar[set[ColorMode]] = {ColorMode.BRIGHTNESS}
     _attr_translation_key = "illum"
 
     @property
-    def brightness(self) -> Optional[int]:
+    def brightness(self) -> int | None:
         """Return the current brightness."""
-        _LOGGER.debug("MusoIllumination.brightness %s", self._device.state.illum)
+        assert self._device and self._device.state.illum is not None
+        # _LOGGER.debug("MusoIllumination.brightness %s", self._device.state.illum)
         return value_to_brightness(BRIGHTNESS_SCALE, self._device.state.illum)
 
     @property
     def is_on(self) -> bool:
         """Return the current illumination state."""
-        return self._device.state.illum and self._device.state.illum > 0
+        if not self._device or self._device.state.illum is None:
+            return False
+        return self._device.state.illum > 0
 
     @property
     def translation_key(self) -> str:
@@ -52,11 +55,12 @@ class MusoIllumination(BaseEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn illuminatio on."""
+
+        if not self._device:
+            return
         if ATTR_BRIGHTNESS in kwargs:
-            value_in_range = int(
-                math.ceil(
-                    brightness_to_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS])
-                )
+            value_in_range = math.ceil(
+                brightness_to_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS])
             )
             await self._device.set_illum(value_in_range)
         else:
@@ -64,4 +68,5 @@ class MusoIllumination(BaseEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn illumination off."""
+        assert self._device
         await self._device.set_illum(0)

@@ -7,8 +7,8 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .base_entity import BaseEntity
 from . import MusoCoordinator
+from .base_entity import BaseEntity
 from .const import LOGGER as _LOGGER
 
 

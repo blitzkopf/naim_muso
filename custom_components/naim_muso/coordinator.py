@@ -1,30 +1,23 @@
-
-from datetime import timedelta
-
 import asyncio
-from urllib.parse import urlparse
 from asyncio import Task
-from async_upnp_client.utils import async_get_local_ip
+from datetime import timedelta
+from urllib.parse import urlparse
+
 from async_upnp_client.exceptions import UpnpError
-
-
-from homeassistant.core import HomeAssistant
+from async_upnp_client.utils import async_get_local_ip
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID, CONF_MAC, CONF_TYPE, CONF_URL
-from homeassistant.helpers.device_registry import DeviceInfo
-
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
-
 from naimco import NaimCo, NaimState
 
-from .const import (
-    LOGGER as _LOGGER, DOMAIN
-)
+from .const import DOMAIN
+from .const import LOGGER as _LOGGER
 from .data import get_domain_data
 
 
@@ -33,7 +26,8 @@ def catch_comm_error(func):
         self = args[0]
         if not isinstance(self, MusoCoordinator):
             raise HomeAssistantError(
-                "Illegal use of decorator, 'self' is not instance of NaimMediaPlayer")
+                "Illegal use of decorator, 'self' is not instance of NaimMediaPlayer"
+            )
         if self._tasks and self._tasks.done():
             # await self._device_disconnect()
 
@@ -51,14 +45,15 @@ def catch_comm_error(func):
         try:
             return await func(*args, **kwargs)
         except Exception as ex:
-            _LOGGER.warning(
-                f"{func.__name__} failed to communuicate with Mu-so {ex}\n")
+            _LOGGER.warning(f"{func.__name__} failed to communuicate with Mu-so {ex}\n")
             raise
+
     return wrapper
 
 
 class MusoCoordinator(DataUpdateCoordinator):
     """Naim Mu-so custom coordinator."""
+
     udn: str
     device_type: str
 
@@ -103,10 +98,10 @@ class MusoCoordinator(DataUpdateCoordinator):
             # Set always_update to `False` if the data returned from the
             # api can be compared via `__eq__` to avoid duplicate updates
             # being dispatched to listeners
-            always_update=True
+            always_update=True,
         )
         """Initialize DLNA DMR entity."""
-        self.udn = config_entry.data[CONF_DEVICE_ID],
+        self.udn = (config_entry.data[CONF_DEVICE_ID],)
         self.device_type = config_entry.data[CONF_TYPE]
         self._attr_name = config_entry.title
         # self._event_addr = EventListenAddr(None, event_port, event_callback_url)
@@ -157,12 +152,15 @@ class MusoCoordinator(DataUpdateCoordinator):
         #     raise UpdateFailed(f"Error communicating with API: {err}")
         _LOGGER.debug("Coordinator Updating data")
         try:
-            await self._device.update_data()
-        except Exception as e:
+            device = self._device
+            if device is None:
+                raise UpdateFailed("Mu-so device is not connected")
+            await device.update_data()
+        except Exception as e:  # noqa: BLE001
             _LOGGER.debug("Error updating data: %r", e)
             raise UpdateFailed(f"Error communicating with Mu-so: {e}")
         # await asyncio.sleep(0.1)
-        return self._device.state
+        return self._device and self._device.state
 
     async def async_shutdown(self) -> None:
         """Run shutdown clean up."""
@@ -198,8 +196,8 @@ class MusoCoordinator(DataUpdateCoordinator):
                 (DOMAIN, self.unique_id)
             },
             name=self._attr_name,
-            manufacturer='Naim Audio Ltd.',  # self.light.manufacturername,
-            model='Mu-so',  # self.light.productname,
+            manufacturer="Naim Audio Ltd.",  # self.light.manufacturername,
+            model="Mu-so",  # self.light.productname,
             # sw_version=self.light.swversion,
             # via_device=(hue.DOMAIN, self.api.bridgeid),
         )
@@ -210,8 +208,7 @@ class MusoCoordinator(DataUpdateCoordinator):
 
         async with self._device_lock:
             if self._device:
-                _LOGGER.debug(
-                    "Trying to connect when device already connected")
+                _LOGGER.debug("Trying to connect when device already connected")
                 return
 
             domain_data = get_domain_data(self.hass)
