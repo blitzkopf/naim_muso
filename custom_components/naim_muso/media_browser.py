@@ -1,13 +1,13 @@
+import asyncio
 from typing import Any
 
 from homeassistant.components.media_player import (
     BrowseMedia,
     MediaClass,
+    MediaPlayerEnqueue,
     MediaType,
-    MediaPlayerEnqueue
 )
 from naimco import NaimCo
-import asyncio
 
 from .const import LOGGER as _LOGGER
 

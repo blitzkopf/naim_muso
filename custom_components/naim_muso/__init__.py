@@ -5,15 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.const import Platform
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .coordinator import MusoCoordinator
 from .const import LOGGER as _LOGGER
-
+from .coordinator import MusoCoordinator
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
